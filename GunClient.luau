@@ -1,4 +1,5 @@
 -- Discord: nopr__  Roblox: StasRost
+-- Game link: https://www.roblox.com/games/82461444165313/Projectile
 
 -- Services
 local UserInputService = game:GetService("UserInputService")
