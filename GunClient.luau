@@ -4,7 +4,7 @@
 --[[
 	Honestly, I don't understand why you need to add so many comments to code where the methods are literally called :Fire(), :Reload(), Aim().
 	This code doesn't even contain any complex algorithms or calculations that would require explanation.
---
+]]
 
 -- Services
 local UserInputService = game:GetService("UserInputService")
