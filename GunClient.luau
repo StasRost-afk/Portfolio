@@ -100,6 +100,7 @@ function GunClient:Equip()
 	if equipAnim then
 		equipAnim:Play()
 		equipAnim.Ended:Once(function()
+		  if not self._isEquipped then return end -- double check
           holdAnim:Play()
       	end)
 	else
