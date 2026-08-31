@@ -82,7 +82,7 @@ function GunClient:Equip()
 	-- Disable mouse (if we wand custom crosshair)
 	UserInputService.MouseIconEnabled = false
 
-  	-- Stop all AnimationTracks
+  	-- Stop all AnimationTracks on _maid:Destroy()
 	-- _maid for handy cleaning; prevents memory leaks
 	self._maid:GiveTask(function()
 		for _, animTrack in pairs(self._animationTracks) do
