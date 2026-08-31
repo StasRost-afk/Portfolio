@@ -117,7 +117,7 @@ function GunClient:Equip()
 			-- if aiming +_aimAlpha
 			self._aimAlpha = math.clamp(self._aimAlpha + dt / aimSpeed, 0, 1)
 		else
-			if not aiming -_aimAlpha
+			-- if not aiming -_aimAlpha
 			self._aimAlpha = math.clamp(self._aimAlpha - dt / aimSpeed, 0, 1)
 		end
 		-- Change camera FOV
