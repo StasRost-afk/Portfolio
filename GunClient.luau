@@ -96,14 +96,14 @@ function GunClient:Equip()
 
 	-- Play "Equip" animation and then play "Hold" animation
 	local equipAnim = self:_getAnimationTrack(humanoid, "Equip")
+	local holdAnim = self:_getAnimationTrack(humanoid, "Hold")
 	if equipAnim then
 		equipAnim:Play()
 		equipAnim.Ended:Once(function()
-          local holdAnim = self:_getAnimationTrack(humanoid, "Hold")
-	        if holdAnim then
-		          holdAnim:Play()
-	        end
-      end)
+          holdAnim:Play()
+      	end)
+	else
+		holdAnim:Play()
 	end
 
 	local aimFOV = self._aimFOV
