@@ -1,6 +1,11 @@
 -- Discord: nopr__  Roblox: StasRost
 -- Game link: https://www.roblox.com/games/82461444165313/Projectile
 
+--[[
+This is a BETA gun system, so some checks were skipped because I'm lazy (for example, the player can shoot even when the humanoid is dead).
+However, the gun system itself works without errors on both the client and the server.
+]]
+
 -- Services
 local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -35,32 +40,32 @@ function GunClient.new(tool: Tool, settings: {})
 	self._maid = Maid.new()
 	self._tool = tool
 	self._settings = settings
-	
+
 	self._isEquipped = false
 	self._isReloading = false
 	self._currentAmmo = settings.Ammo
 	self._currentAmmoInMag = settings.AmmoInMag
-	
+
 	self._aimFOV = settings.AimFOV
 	self._aimSpeed = settings.AimSpeed
 	self._aimAlpha = 0
 	self._spreads = settings.Spread
-	
+
 	self._reloadTime = settings.ReloadTime
-	
+
 	self._firePart = settings.FirePart
 	self._fireMode = settings.FireMode
 	self._fireRate = settings.FireRate
 	self._lastFire = 0
-	
+
 	self._animationIds = settings.Animations
 	self._animationTracks = {}
-	
+
 	self._rayParams = RaycastParams.new()
 	self._rayParams.FilterType = Enum.RaycastFilterType.Exclude
-	
+
 	self._firePromise = nil
-	
+
 	return self
 end
 
@@ -77,9 +82,17 @@ function GunClient:Equip()
 	-- Disable mouse (if we wand custom crosshair)
 	UserInputService.MouseIconEnabled = false
 
-  	-- Stop all AnimationTracks on _maid:Destroy()
+	-- Stop all AnimationTracks and set properties to default on _maid:Destroy()
 	-- _maid for handy cleaning; prevents memory leaks
-	self._maid:GiveTask(function()
+	self._maid:GiveTask(function()	
+		camera.FieldOfView = NORMAL_CAMERA_FOV
+		
+		-- Remove third person camera
+		CameraController:ToggleThirdPerson(false)
+
+		-- show mouse
+		UserInputService.MouseIconEnabled = true
+		
 		for _, animTrack in pairs(self._animationTracks) do
 			animTrack:Stop()
 		end
@@ -95,9 +108,9 @@ function GunClient:Equip()
 	if equipAnim then
 		equipAnim:Play()
 		equipAnim.Ended:Once(function()
-		  if not self._isEquipped then return end -- double check
-          holdAnim:Play()
-      	end)
+			if not self._isEquipped then return end -- double check
+			holdAnim:Play()
+		end)
 	else
 		holdAnim:Play()
 	end
@@ -105,7 +118,7 @@ function GunClient:Equip()
 	local aimFOV = self._aimFOV
 	local aimSpeed = self._aimSpeed
 
- 	-- For smooth aiming
+	-- For smooth aiming
 	-- _maid for handy cleaning; prevents memory leaks
 	self._maid:GiveTask(RunService.RenderStepped:Connect(function(dt)
 		if self._isAiming then
@@ -127,39 +140,39 @@ end
 
 function GunClient:Fire(_, inputState, _)
 	if not self._isEquipped then return end
-	
+
 	if inputState == Enum.UserInputState.Begin then
-    -- Cancel _firePromise with fire loop (for Burst / Auto fireMode)
+		-- Cancel _firePromise with fire loop (for Burst / Auto fireMode)
 		self:_cancelActivePromise("_firePromise")
-		
+
 		if self._fireMode == "Single" then
 			self:_fire(UserInputService:GetMouseLocation())
 		elseif self._fireMode == "Burst" then
 
-      -- Run Burst fireMode loop
-	  -- We use Promise because we are calling a loop that we want to stop if something happens (no ammo, gun unequip, etc.)
+			-- Run Burst fireMode loop
+			-- We use Promise because we are calling a loop that we want to stop if something happens (no ammo, gun unequip, etc.)
 			self._firePromise = Promise.new(function()
 				for _ = 1, 3 do
 					self:_fire(UserInputService:GetMouseLocation())
 					task.wait(60/self._fireRate)
 				end
 			end)
-			
+
 		elseif self._fireMode == "Auto" then
 
-      -- Run Auto fireMode loop
+			-- Run Auto fireMode loop
 			self._firePromise = Promise.new(function()
-	    -- We use Promise because we are calling a loop that we want to stop if something happens (no ammo, gun unequip, etc.)
+				-- We use Promise because we are calling a loop that we want to stop if something happens (no ammo, gun unequip, etc.)
 				while true do
 					self:_fire(UserInputService:GetMouseLocation())
 					task.wait(60/self._fireRate)
 				end
 			end)
-			
+
 		end
 	elseif inputState == Enum.UserInputState.End then
-    -- End fire loop (if exists)
-	-- AND cancel Promise with loop within
+		-- End fire loop (if exists)
+		-- AND cancel Promise with loop within
 		self:_cancelActivePromise("_firePromise")
 	end
 end
@@ -167,13 +180,13 @@ end
 -- Just aiming
 function GunClient:Aim(_, inputState, _)
 	if not self._isEquipped then return end
-	
+
 	local humanoid = PlayerController:GetHumanoid()
 	if not humanoid then return end
 
 	-- Get "Aim" AnimationTrack
 	local aimAnim = self:_getAnimationTrack(humanoid, "Aim")
-	
+
 	if inputState == Enum.UserInputState.Begin then
 		if self._isReloading then return end
 
@@ -189,7 +202,7 @@ end
 
 function GunClient:Reload(_, inpuState, _)
 	if inpuState ~= Enum.UserInputState.End then return end
-	
+
 	if not self._isEquipped then return end
 	if self._isReloading then return end
 
@@ -197,7 +210,7 @@ function GunClient:Reload(_, inpuState, _)
 	if self._currentAmmoInMag == self._settings.AmmoInMag then return end
 	-- if total _currentAmmo less than 0 then return end
 	if self._currentAmmo <= 0 then return end
-	
+
 	local humanoid = PlayerController:GetHumanoid()
 	if not humanoid then return end
 	
@@ -218,25 +231,25 @@ function GunClient:Reload(_, inpuState, _)
 	reloadAnim.Stopped:Once(function()
 		local timeElapsed = (workspace:GetServerTimeNow() - startReload)
 
-      -- check for full reloadTime passed and calculate ammo to reload
-	  -- * .8 - forgiveness (reload if passed 80% of _reloadTime)
+		-- check for full reloadTime passed and calculate ammo to reload
+		-- * .8 - forgiveness (reload if passed 80% of _reloadTime)
 		if timeElapsed >= self._reloadTime * .8 then
 			local ammoToRefil = ((self._currentAmmoInMag + self._currentAmmo) >= self._settings.AmmoInMag and self._settings.AmmoInMag - self._currentAmmoInMag) or self._currentAmmo
-			
+
 			self._currentAmmo = math.max(0, self._currentAmmo - ammoToRefil)
 			self._currentAmmoInMag = ammoToRefil + self._currentAmmoInMag
 		end
-		
+
 		self._isReloading = false
-		
+
 		-- End reloading on Server
 		-- Server checks for Reload timeElapsed from Start Reload Time
 		Network:FireServer("GunReload", self._tool, "End")
 	end)
-	
+
 	self._isReloading = true
 	reloadAnim:Play(nil, nil, reloadAnim.Length / self._reloadTime)
-	
+
 	-- Start reloading on Server (Server saves Start Reload Time for further use)
 	Network:FireServer("GunReload", self._tool, "Start")
 end
@@ -252,13 +265,7 @@ function GunClient:_onUnequip()
 	self._isReloading = false
 	self._isAiming = false
 
-	-- Remove third person camera
-	CameraController:ToggleThirdPerson(false)
-
-	-- show mouse
-	UserInputService.MouseIconEnabled = true
-
-  -- Cancel promises and clean all maid things TO PREVENT MEMORY LEAKS
+	-- Cancel promises and clean all maid things TO PREVENT MEMORY LEAKS
 	self:_cancelActivePromise("_firePromise")
 	self._maid:Destroy()
 end
@@ -268,19 +275,19 @@ function GunClient:_getAnimationTrack(humanoid, animationName, waitForAnim)
 	if self._animationTracks[animationName] then
 		return self._animationTracks[animationName]
 	end
-	
+
 	local animator = humanoid:FindFirstChild("Animator")
 	if not animator then return end
 
 	local animationId = self._animationIds[animationName]
 	if not animationId then return end
-	
+
 	local animation = Instance.new("Animation")
 	animation.AnimationId = animationId
-	
+
 	local track = animator:LoadAnimation(animation)
 
-  -- Wait for track.Length load
+	-- Wait for track.Length load
 	if waitForAnim then
 		repeat
 			task.wait()
@@ -289,16 +296,16 @@ function GunClient:_getAnimationTrack(humanoid, animationName, waitForAnim)
 
 	-- cache AnimationTrack to dictionary
 	self._animationTracks[animationName] = track
-	
+
 	return track
 end
 
 function GunClient:_fire(inputPosition)
-  -- Fire rate check
+	-- Fire rate check
 	if (workspace:GetServerTimeNow() - self._lastFire) < (60/self._fireRate) then return end
 	self._lastFire = workspace:GetServerTimeNow()
 
-  -- Ammo check. If false then stop _firePromise loop
+	-- Ammo check. If false then stop _firePromise loop
 	if self._currentAmmoInMag <= 0 or self._isReloading then
 		self:_cancelActivePromise("_firePromise")
 		return
@@ -313,7 +320,7 @@ function GunClient:_fire(inputPosition)
 	-- Generate GUID for projectile
 	local guid = HttpService:GenerateGUID(false)
 
-  -- Get WORLD click position from inputPosition using camera:ViewportPointToRay() and workspace:Raycast()
+	-- Get WORLD click position from inputPosition using camera:ViewportPointToRay() and workspace:Raycast()
 	local clickPos = inputPosition
 	local ray = camera:ViewportPointToRay(clickPos.X, clickPos.Y)
 	-- _firePart == tool's FirePart
@@ -321,7 +328,7 @@ function GunClient:_fire(inputPosition)
 	-- Cast Ray from camera
 	local raycast = workspace:Raycast(ray.Origin, ray.Direction * 1000, self._rayParams)
 	local direction
-	
+
 	if raycast then
 		-- if we hit something then get direction from _firePart.Position to raycast.Position
 		direction = (raycast.Position - origin).Unit
@@ -330,9 +337,9 @@ function GunClient:_fire(inputPosition)
 		direction = ((ray.Origin + ray.Direction * 1000) - origin).Unit
 	end
 
-  -- Set spread mode: Idle, Moving, Jumping
+	-- Set spread mode: Idle, Moving, Jumping
 	local spread = self._spreads.Idle
-	
+
 	if (rootVelocity * Vector3.yAxis).Magnitude >= 1 then
 		-- if rootVelocity.Y >= 1 then set spread mode to Jumping
 		spread = self._spreads.Jumping
@@ -356,12 +363,12 @@ function GunClient:_fire(inputPosition)
 	local hitFunc = self._settings.Projectile_Hit_Function
 	local stepFunc = self._settings.Projectile_Step_Function
 
-	local fireTime = workspace:GetServerTimenow()
+	local fireTime = workspace:GetServerTimeNow()
 	Projectile:SpawnProjectile(player, guid, origin, direction, speed, acceleration, projectilePart, self._rayParams, hitFunc, stepFunc)
 
 	-- Set recoil to Camera
 	CameraController:DoRecoil(self._settings.Recoil.X, self._settings.Recoil.Y)
-	
+
 	local humanoid = PlayerController:GetHumanoid()
 	if humanoid then
 		-- Play "Fire" AnimationTrack
@@ -369,7 +376,7 @@ function GunClient:_fire(inputPosition)
 		if fireAnim then fireAnim:Play() end
 	end
 
-  -- Send fire info to Server
+	-- Send fire info to Server
 	Network:FireServer("GunFire", self._tool, guid, self._firePart, origin, direction, fireTime)
 end
 
