@@ -356,7 +356,7 @@ function GunClient:_fire(inputPosition)
 	local hitFunc = self._settings.Projectile_Hit_Function
 	local stepFunc = self._settings.Projectile_Step_Function
 
-	local fireTime = workspace:GetServerTimanow()
+	local fireTime = workspace:GetServerTimenow()
 	Projectile:SpawnProjectile(player, guid, origin, direction, speed, acceleration, projectilePart, self._rayParams, hitFunc, stepFunc)
 
 	-- Set recoil to Camera
