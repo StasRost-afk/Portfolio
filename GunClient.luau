@@ -173,8 +173,7 @@ function GunClient:Fire(_, inputState, _)
 
 		end
 	elseif inputState == Enum.UserInputState.End then -- Player released the left mouse button
-		-- End fire loop (if exists)
-		-- AND cancel Promise with loop within
+		-- cancel active Promise with loop within
 		self:_cancelActivePromise("_firePromise")
 	end
 end
