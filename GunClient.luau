@@ -311,17 +311,17 @@ function GunClient:_fire(inputPosition)
 	if (workspace:GetServerTimeNow() - self._lastFire) < (60/self._fireRate) then return end
 	self._lastFire = workspace:GetServerTimeNow() -- Set _lastFire to current server time
 
+	-- Get Player's HumanoidRootPart and HumanoidRootPart.AssemblyLinearVelocity for further use
+	local rootPart = PlayerController:GetRootPart()
+	if not rootPart then return end
+	local rootVelocity = rootPart.AssemblyLinearVelocity
+
 	-- If _currentAmmoInMag <= 0 OR Player start Reloading then we need to stop ACTIVE _firePromise loop
 	if self._currentAmmoInMag <= 0 or self._isReloading then
 		self:_cancelActivePromise("_firePromise")
 		return -- We don't want the code to run further, so we use return
 	end
 	self._currentAmmoInMag -= 1 -- subtract 1 ammo from mag
-
-	-- Get Player's HumanoidRootPart and HumanoidRootPart.AssemblyLinearVelocity for further use
-	local rootPart = PlayerController:GetRootPart()
-	if not rootPart then return end
-	local rootVelocity = rootPart.AssemblyLinearVelocity
 
 	-- Generate GUID for projectile (so we can find projectile with GUID)
 	local guid = HttpService:GenerateGUID(false)
@@ -330,7 +330,7 @@ function GunClient:_fire(inputPosition)
 	local ray = camera:ViewportPointToRay(clickPos.X, clickPos.Y) -- Convert clickPos to Ray in the world
 	local origin = self._firePart.Position -- Get tool's FirePart position
 	local raycast = workspace:Raycast(ray.Origin, ray.Direction * 1000, self._rayParams) -- Cast Ray from camera to clickPosition (The Ray is emitted from the Camera's position)
-	local direction -- normalized vector
+	local direction -- variable for normalized vector
 
 	if raycast then
 		-- if we hit something then get direction from _firePart.Position to raycast.Position
