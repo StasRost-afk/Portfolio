@@ -203,7 +203,7 @@ end
 
 -- This method fires on ContextActionService's action
 function GunClient:Reload(_, inpuState, _)
-	if inpuState ~= Enum.UserInputState.End then return end -- Reloading only occurs when the Player presses the R button (not when releasing it)
+	if inpuState ~= Enum.UserInputState.End then return end -- Reloading only occurs when the Player released the R button
 
 	if not self._isEquipped then return end
 	if self._isReloading then return end
